@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#E7EAEE">
+<title>Rachas del gym</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7EAEE; --card:#F6F7F9; --ink:#1B2430; --mute:#5F6B7A; --line:#CBD1D9;
+  --blue:#2F5BFF; --red:#D6402F; --green:#2E9E6B;
+  --num:'Barlow Condensed','Arial Narrow',sans-serif;
+  --txt:'DM Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--txt);-webkit-text-size-adjust:100%}
+body{padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 28px);max-width:560px;margin:0 auto}
+h1{font-family:var(--num);font-size:28px;font-weight:700;padding:18px 0 4px}
+.sub{color:var(--mute);font-size:14px;margin-bottom:16px}
+.fine{background:var(--ink);color:#fff;border-radius:6px;padding:16px 18px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.fine .big{font-family:var(--num);font-size:56px;font-weight:700;line-height:1}
+.fine .lbl{font-size:14px;color:#C9D1DC;max-width:14em;text-align:right}
+.me{margin:16px 0;background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:16px}
+.me.done{border-color:var(--green)}
+.btn{display:block;width:100%;background:var(--blue);color:#fff;border:0;border-radius:6px;font:700 17px var(--txt);padding:16px;cursor:pointer}
+.btn:focus-visible,.pay:focus-visible,.who button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.btn:disabled{opacity:.6}
+.ok{color:var(--green);font-weight:700}
+.people{display:grid;gap:10px;margin:16px 0}
+.p{background:var(--card);border-radius:6px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 16px;align-items:center}
+.p .streak{font-family:var(--num);font-size:52px;font-weight:700;line-height:1;grid-row:span 2}
+.p .name{font-weight:700;font-size:17px}
+.p .meta{font-size:13px;color:var(--mute)}
+.p .owed{font-family:var(--num);font-size:24px;font-weight:700;color:var(--red);grid-row:span 2;text-align:right}
+.p .owed.zero{color:var(--mute)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--line)}
+.dot.on{background:var(--green)}
+h2{font-family:var(--num);font-size:22px;font-weight:700;margin:22px 0 8px}
+.photos{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.photos figure{flex:0 0 130px}
+.photos img{width:130px;height:170px;object-fit:cover;border-radius:6px;display:block;background:var(--line)}
+.photos figcaption{font-size:13px;margin-top:4px;color:var(--mute)}
+.empty{color:var(--mute);font-size:14px}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.row .amt{font-family:var(--num);font-size:22px;font-weight:700}
+.row.paid .amt{color:var(--mute);text-decoration:line-through}
+.row small{color:var(--mute)}
+.pay{background:none;border:1.5px solid var(--ink);border-radius:6px;font:500 13px var(--txt);padding:6px 10px;cursor:pointer;color:var(--ink)}
+.who{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;justify-content:center;gap:12px;padding:24px}
+.who.show{display:flex}
+.who button{background:var(--ink);color:#fff;border:0;border-radius:6px;font:700 20px var(--txt);padding:20px;cursor:pointer}
+.err{background:#FBE3DF;color:#8A2418;padding:12px 14px;border-radius:6px;font-size:14px;margin:12px 0;display:none}
+.link{background:none;border:0;color:var(--mute);font:13px var(--txt);text-decoration:underline;cursor:pointer;margin-top:18px}
+</style>
+</head>
+<body>
+
+<h1>Rachas del gym</h1>
+<p class="sub" id="fecha"></p>
+<div class="err" id="err"></div>
+
+<div class="fine">
+  <div class="big" id="proxima">₡500</div>
+  <div class="lbl">próxima multa si alguien falla</div>
+</div>
+
+<div class="me" id="me">
+  <div id="meEstado"></div>
+  <input type="file" id="cam" accept="image/*" capture="environment" hidden>
+  <button class="btn" id="btnFoto">Subir foto del gym</button>
+</div>
+
+<div class="people" id="people"></div>
+
+<h2>Fotos de hoy</h2>
+<div class="photos" id="photos"></div>
+
+<h2>Multas</h2>
+<div id="ledger"></div>
+
+<button class="link" id="cambiar">Cambiar de persona</button>
+
+<div class="who" id="who">
+  <h1>¿Quién sos?</h1>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ============ CONFIGURACIÓN: edita solo esta parte ============ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA3hpWCWzWpovMwgBuR7KdSIdzlmOKbx5s",
+  authDomain: "gym-vikingos.firebaseapp.com",
+  projectId: "gym-vikingos",
+  storageBucket: "gym-vikingos.firebasestorage.app",
+  messagingSenderId: "431496645948",
+  appId: "1:431496645948:web:539b1c6a95277e3819a239"
+};
+const USERS = ["Alejandro", "Pablo", "Brad"];
+const START = "2026-10-01";      // primer día que cuenta (YYYY-MM-DD)
+const BASE_FINE = 500;           // primera multa del mes; luego se duplica
+const FORGIVE_PER_WEEK = 2;      // perdones por semana (lunes a domingo)
+const TZ = "America/Costa_Rica";
+/* ============================================================== */
+
+const $ = id => document.getElementById(id);
+const fmt = n => "₡" + n.toLocaleString("es-CR");
+
+/* ---------- Fechas (siempre hora de Costa Rica) ---------- */
+const crToday = () => new Intl.DateTimeFormat("en-CA", {timeZone: TZ}).format(new Date());
+function addDays(s, n){ const d = new Date(s + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
+function weekStart(s){ const d = new Date(s + "T00:00:00Z"); return addDays(s, -((d.getUTCDay() + 6) % 7)); }
+
+/* ---------- Estado ---------- */
+let me = localStorage.getItem("gym_me");
+let checkins = {};   // checkins[user][fecha] = true
+let paid = {};       // paid["user_fecha"] = true
+let todayPhotos = {};// todayPhotos[user] = dataURL
+let db = null;
+
+/* ---------- Lógica de rachas y multas ---------- */
+function compute(){
+  const today = crToday();
+  const out = {}, fails = [];
+  USERS.forEach(u => {
+    let streak = 0; const misses = {};
+    for (let d = START; d < today; d = addDays(d, 1)){
+      if (checkins[u] && checkins[u][d]) { streak++; continue; }
+      const w = weekStart(d);
+      misses[w] = (misses[w] || 0) + 1;
+      if (misses[w] > FORGIVE_PER_WEEK){ streak = 0; fails.push({date: d, user: u}); }
+      // si no pasa de 2 faltas en la semana, es perdón: la racha no cambia
+    }
+    const used = Math.min(FORGIVE_PER_WEEK, misses[weekStart(today)] || 0);
+    const done = !!(checkins[u] && checkins[u][today]);
+    out[u] = {streak: streak + (done ? 1 : 0), left: FORGIVE_PER_WEEK - used, done, owed: 0};
+  });
+  // multa universal: la n-ésima falla del mes vale BASE * 2^(n-1)
+  fails.sort((a,b) => a.date.localeCompare(b.date) || USERS.indexOf(a.user) - USERS.indexOf(b.user));
+  const perMonth = {};
+  fails.forEach(f => {
+    const m = f.date.slice(0,7);
+    perMonth[m] = (perMonth[m] || 0) + 1;
+    f.amount = BASE_FINE * Math.pow(2, perMonth[m] - 1);
+    f.paid = !!paid[f.user + "_" + f.date];
+    if (!f.paid) out[f.user].owed += f.amount;
+  });
+  const next = BASE_FINE * Math.pow(2, perMonth[today.slice(0,7)] || 0);
+  return {out, fails, next, today};
+}
+
+/* ---------- Pintar pantalla ---------- */
+function render(){
+  if (!me) return;
+  const {out, fails, next, today} = compute();
+  $("fecha").textContent = new Intl.DateTimeFormat("es-CR", {timeZone: TZ, weekday:"long", day:"numeric", month:"long"}).format(new Date());
+  $("proxima").textContent = fmt(next);
+
+  const mine = out[me];
+  $("me").className = "me" + (mine.done ? " done" : "");
+  $("meEstado").innerHTML = mine.done
+    ? '<p class="ok">Hoy ya cumpliste. Racha: ' + mine.streak + ' días.</p>'
+    : '<p style="margin-bottom:12px">Hoy no has subido foto. Te quedan ' + mine.left + ' perdones esta semana.</p>';
+  $("btnFoto").style.display = mine.done ? "none" : "block";
+
+  $("people").innerHTML = USERS.map(u => {
+    const o = out[u];
+    let dots = "";
+    for (let i = 0; i < FORGIVE_PER_WEEK; i++) dots += '<span class="dot' + (i < o.left ? " on" : "") + '"></span>';
+    return '<div class="p"><div class="streak">' + o.streak + '</div>' +
+      '<div class="name">' + u + (u === me ? " (vos)" : "") + '</div>' +
+      '<div class="owed' + (o.owed ? "" : " zero") + '">' + (o.owed ? fmt(o.owed) : "al día") + '</div>' +
+      '<div class="meta">' + dots + (o.done ? "hoy listo" : "hoy pendiente") + '</div></div>';
+  }).join("");
+
+  const ph = USERS.filter(u => todayPhotos[u]);
+  $("photos").innerHTML = ph.length
+    ? ph.map(u => '<figure><img alt="Foto de ' + u + '" src="' + todayPhotos[u] + '"><figcaption>' + u + '</figcaption></figure>').join("")
+    : '<p class="empty">Todavía nadie subió foto hoy.</p>';
+
+  $("ledger").innerHTML = fails.length
+    ? fails.slice().reverse().map(f =>
+        '<div class="row' + (f.paid ? " paid" : "") + '"><div><b>' + f.user + '</b><br><small>' + f.date + '</small></div>' +
+        '<div class="amt">' + fmt(f.amount) + '</div>' +
+        (f.paid ? '<small>pagada</small>' : '<button class="pay" data-k="' + f.user + "_" + f.date + '">Marcar pagada</button>') + '</div>').join("")
+    : '<p class="empty">Sin multas todavía.</p>';
+}
+
+/* ---------- Foto: se comprime y se guarda ---------- */
+function compress(file){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = 640, h = Math.round(img.height * w / img.width);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      res(c.toDataURL("image/jpeg", 0.6));
+    };
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function subirFoto(file){
+  const btn = $("btnFoto"); btn.disabled = true; btn.textContent = "Subiendo...";
+  try{
+    const today = crToday();
+    const photo = await compress(file);
+    const id = me + "_" + today;
+    const batch = db.batch();
+    batch.set(db.collection("checkins").doc(id), {user: me, date: today, ts: firebase.firestore.FieldValue.serverTimestamp()});
+    batch.set(db.collection("photos").doc(id), {user: me, date: today, photo});
+    await batch.commit();
+  }catch(e){ mostrarError("No se pudo subir la foto. Revisa la conexión e intenta de nuevo."); }
+  btn.disabled = false; btn.textContent = "Subir foto del gym";
+}
+
+function mostrarError(t){ const e = $("err"); e.textContent = t; e.style.display = "block"; }
+
+/* ---------- Arranque ---------- */
+function elegirPersona(){
+  const w = $("who");
+  w.innerHTML = "<h1>¿Quién sos?</h1>" + USERS.map(u => '<button data-u="' + u + '">' + u + "</button>").join("");
+  w.classList.add("show");
+}
+document.addEventListener("click", e => {
+  const u = e.target.dataset && e.target.dataset.u;
+  if (u){ me = u; localStorage.setItem("gym_me", u); $("who").classList.remove("show"); render(); }
+  const k = e.target.dataset && e.target.dataset.k;
+  if (k) db.collection("paid").doc(k).set({paid: true});
+});
+$("cambiar").onclick = elegirPersona;
+$("btnFoto").onclick = () => $("cam").click();
+$("cam").onchange = e => { if (e.target.files[0]) subirFoto(e.target.files[0]); e.target.value = ""; };
+
+function iniciar(){
+  if (FIREBASE_CONFIG.apiKey === "PEGAR_AQUI"){
+    mostrarError("Falta pegar la configuración de Firebase en el archivo (sección CONFIGURACIÓN).");
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  db.collection("checkins").onSnapshot(s => {
+    checkins = {};
+    s.forEach(d => { const x = d.data(); (checkins[x.user] = checkins[x.user] || {})[x.date] = true; });
+    render();
+  }, () => mostrarError("No se pudo leer la base de datos. Revisa las reglas de Firestore."));
+  db.collection("paid").onSnapshot(s => { paid = {}; s.forEach(d => paid[d.id] = true); render(); });
+  db.collection("photos").where("date", "==", crToday()).onSnapshot(s => {
+    todayPhotos = {}; s.forEach(d => { const x = d.data(); todayPhotos[x.user] = x.photo; }); render();
+  });
+}
+if (!me) elegirPersona();
+iniciar();
+render();
+</script>
+</body>
+</html>
